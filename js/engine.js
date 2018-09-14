@@ -26,7 +26,22 @@ var Engine = (function(global) {
 
     canvas.width = 505;
     canvas.height = 606;
-    doc.body.appendChild(canvas);
+
+    var gameOver = doc.createElement("div");
+    gameOver.id = "game-over";
+    gameOver.innerHTML = '<h1>GAME OVER</h1><button onclick="playAgain()">PLAY AGAIN</button>';
+
+    var winner = doc.createElement("div");
+    winner.id = "winner";
+    winner.innerHTML = `<img src="images/victory-stars.png" alt="3 stars"><h1>YOU WIN!</h1><h2 id="gameScore">0</h2><h2 id="scoreRecord">0</h2><button onclick="playAgain()">PLAY AGAIN</button>`;
+
+    var myCanvas = doc.createElement("div");
+    myCanvas.id = "myCanvas";
+    myCanvas.appendChild(canvas);
+
+    doc.body.appendChild(gameOver);
+    doc.body.appendChild(winner);
+    doc.body.appendChild(myCanvas);
 
     /* This function serves as the kickoff point for the game loop itself
      * and handles properly calling the update and render methods.
@@ -46,6 +61,38 @@ var Engine = (function(global) {
          */
         update(dt);
         render();
+
+        /*  
+         */
+        if(player.hasLost === true || player.hasWin === true){
+            $('myCanvas').attr("style", 'z-index: -1;');
+
+            //clear the timers that add new elements to the screen
+            clearInterval(addEnemiesInterval);
+            clearInterval(addSmallBonusInterval);
+            clearInterval(addBigBonusInterval);
+
+            //clear the enemies and bonus sets
+            allEnemies.clear();
+            allBonus.clear();
+
+            render();
+
+            if(player.hasLost === true){
+                $('#game-over').fadeIn();
+            }
+            if(player.hasWin === true){
+                //do not allow a win screen with the game over
+                if(!$('#game-over').is(':visible')){
+                    $('#gameScore').text('Score: ' + player.score);
+                    if(localStorage.getItem('scoreRecord') == null){
+                        localStorage.setItem('scoreRecord', '0');
+                    }
+                    $('#scoreRecord').text('Record: ' + localStorage.getItem('scoreRecord'));
+                    $('#winner').fadeIn();
+                }
+            }
+        }
 
         /* Set our lastTime variable which is used to determine the time delta
          * for the next time this function is called.
@@ -92,8 +139,14 @@ var Engine = (function(global) {
     function updateEntities(dt) {
         allEnemies.forEach(function(enemy) {
             enemy.update(dt);
+            if(enemy.x > 500)
+                allEnemies.delete(enemy);
         });
-        player.update();
+        allBonus.forEach(function(bonus) {
+            bonus.update();
+            if(bonus.status == 0)
+                allBonus.delete(bonus);
+        });
     }
 
     /* This function initially draws the "game level", it will then call
@@ -137,7 +190,6 @@ var Engine = (function(global) {
                 ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
             }
         }
-
         renderEntities();
     }
 
@@ -149,6 +201,11 @@ var Engine = (function(global) {
         /* Loop through all of the objects within the allEnemies array and call
          * the render function you have defined.
          */
+
+        allBonus.forEach(function(bonus) {
+            bonus.render();
+        });
+
         allEnemies.forEach(function(enemy) {
             enemy.render();
         });
@@ -161,7 +218,6 @@ var Engine = (function(global) {
      * those sorts of things. It's only called once by the init() method.
      */
     function reset() {
-        // noop
     }
 
     /* Go ahead and load all of the images we know we're going to need to
@@ -173,7 +229,13 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-cat-girl.png',
+        'images/star.png',
+        'images/heart.png',
+        'images/key.png',
+        'images/gem-green.png',
+        'images/gem-orange.png',
+        'images/gem-blue.png'
     ]);
     Resources.onReady(init);
 
